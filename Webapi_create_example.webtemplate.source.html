@@ -1,0 +1,189 @@
+<!--include PortalWebAPI helder for WebAPI-->
+{% include 'portalwebapihelper' %}
+
+<!--include WebAPI CSS-->
+{% include 'webapi_css' %}
+
+<h2>{{title}}</h2>
+
+<!-- Get speakers -->
+{% fetchxml speakers %}
+    <fetch returntotalrecordcount="true">
+        <entity name="contact">
+        <attribute name="fullname" />
+        </entity>
+    </fetch>
+{% endfetchxml %}
+
+<!-- Get Session types-->
+{% fetchxml sessiontypes %}
+<fetch distinct="true" returntotalrecordcount="true">
+    <entity name="stringmap">
+    <attribute name="attributename" />
+    <attribute name="attributevalue" />
+    <attribute name="value" />
+    <attribute name="langid" />
+    <filter>
+        <condition attribute="attributename" operator="eq" value="docs_sessiontype" />
+        <filter>
+        <condition attribute="langid" operator="eq" value="1033" />
+        </filter>
+    </filter>
+    </entity>
+</fetch>
+{% endfetchxml %}
+
+<!--create lookup-->
+
+<form id="myForm">
+    <label for="docs_sessionname">Session Name:</label>
+    <input type="text" id="docs_sessionname" name="docs_sessionname" required><br>
+
+    <label for="docs_sessionspeaker">Speaker:</label>
+
+    <select name="docs_speaker" id="docs_speaker">
+    <option disabled selected value> -- select a speaker -- </option>
+    {% if speakers.results.total_record_count > 0 %}
+        {% for speaker in speakers.results.entities %}
+        <option value="{{speaker.id}}">{{speaker.fullname}}</option>
+        {% endfor %} 
+    {% endif %} 
+    </select>
+
+    <label for="docs_sessionspeaker">Session Type:</label>
+
+    <select name="docs_sessiontype" id="docs_sessiontype">
+    <option disabled selected value> -- select a session type -- </option>
+    {% if sessiontypes.results.total_record_count > 0 %}
+        {% for sessiontype in sessiontypes.results.entities %}
+        <option value="{{sessiontype.attributevalue}}">{{sessiontype.value}}</option>
+        {% endfor %} 
+    {% endif %} 
+    </select>
+
+    <label for="docs_sessiondescription">Session Description:</label>
+    <textarea id="docs_sessiondescription" name="docs_sessiondescription" required></textarea><br>
+    
+    <label for="docs_sessiondateandtime">Session Date and Time:</label>
+    <input type="datetime-local" id="docs_sessiondateandtime" name="docs_sessiondateandtime" required><br>
+    
+    <label for="docs_duration">Duration (minutes):</label>
+    <input type="number" id="docs_duration" name="docs_duration" required><br>
+    
+    <input type="submit" value="Submit">
+    </form>
+
+
+<script>
+
+$(document).ready(function() {
+    $('#myForm').submit(function(event) {
+        
+        //alert($('#docs_speaker').val());
+
+        event.preventDefault(); // Prevent the default form submission
+
+        // Create a new record object from form data
+        var record = {};
+        record.docs_sessionname = $('#docs_sessionname').val(); // Text
+        record.docs_sessiondescription = $('#docs_sessiondescription').val(); // Multiline Text
+        record.docs_sessiondateandtime = $('#docs_sessiondateandtime').val(); // Date Time
+        record.docs_duration = parseInt($('#docs_duration').val()); // Whole Number
+        record.docs_sessiontype = $('#docs_sessiontype').val(); // Option Set (docs_sessiontype
+        record["docs_Speaker@odata.bind"] = "/contacts(" + $('#docs_speaker').val() +")"; //lookup
+
+        //record["docs_Speaker@odata.bind"] = "/contacts(102b6a27-89fd-e711-a836-000d3a33a7cb)"; // Lookup
+  
+        //alert(record["docs_sessionname"]);
+
+        // record["primarycontactid@odata.bind"] = "/contacts(102b6a27-89fd-e711-a836-000d3a33a7cb)"; // Lookup
+
+        // Call the WebAPI helper function to create the record
+        webapi.safeAjax({
+            type: "POST",
+            contentType: "application/json",
+            url: "/_api/docs_sessions",
+            data: JSON.stringify(record),
+            success: function (data, textStatus, xhr) {
+                var newId = xhr.getResponseHeader("entityid");
+                console.log(newId);
+                // Reset the form after successful submission
+                $('#myForm')[0].reset();
+                just_added(newId);
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.log(xhr);
+                alert(errorThrown);
+            }
+        });
+    });
+
+    //Read example
+    function just_added(id) {
+
+        webapi.safeAjax({
+            type: "GET",
+            url: "/_api/docs_sessions("+id+")?$select=docs_sessionname",
+            contentType: "application/json",
+            headers: {
+                "Prefer": "odata.include-annotations=*"
+            },
+            success: function (data, textStatus, xhr) {
+                var result = data;
+                console.log(result);
+                // Columns
+                var docs_sessionid = result["docs_sessionid"]; // Guid
+                var docs_sessionname = result["docs_sessionname"]; // Text
+                alert("You just added a session called: " + docs_sessionname);
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.log(xhr);
+            }
+        });
+
+    }
+
+    function get_optionset(attributename,langid) {
+
+      webapi.safeAjax({
+          type: "GET",
+          //url: "_api/stringmaps?$select=attributevalue,value&$filter=(attributename eq 'docs_sessiontype' and '(langid eq '1033'))"
+          url: "_api/stringmaps?$select=attributevalue,value&$filter=(attributename eq "+ attributename +" and '(langid eq '"+ langid +"'))",          
+
+          contentType: "application/json",
+          headers: {
+              "Prefer": "odata.include-annotations=*"
+          },
+          success: function (data, textStatus, xhr) {
+              var result = data;
+              console.log(result);
+              // Columns
+
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.log(xhr);
+            }
+        });
+
+    }
+  
+});  
+
+</script>
+
+{% manifest %} 
+    { 
+    "type": "Functional", 
+    "displayName": "Create WebAPI example", 
+    "description": "This custom form creates a record using the WebAPI", 
+    "tables": ["docs_session"], 
+    "params": [ 
+        { 
+        "id": "title", 
+        "displayName": "Title", 
+        "description": "Heading for this component" 
+        }] 
+    } 
+{% endmanifest %} 
+
+<!--additional web template code to use parameters to specialized functionality-->

@@ -1,0 +1,89 @@
+<!--Include WebAPI CSS-->
+{% include 'webapi_css' %}
+
+<!--include PortalWebAPI helper for WebAPI-->
+{% include 'portalwebapihelper' %}
+
+<!--Get the GUID of the record from the parameters-->
+{% assign session_id = request.params.id %}
+
+<!--Get the record from the Liquid object-->
+{% assign session = entities.docs_session[session_id] %}
+
+<h2>{{title}}</h2>
+
+Session ID: {{session_id}}</br>
+Session Name: {{session.docs_sessionname}}</br>  
+
+<!--Get the URL via sitemarker of the sessions page-->
+{% assign session_page = sitemarkers["sessions"].url %}
+
+
+DATE: {{session.docs_sessiondateandtime | date: 'yyyy-MM-ddTHH:mm:ss'}}
+
+<!--Create a form to update the record-->
+<form id="myForm">
+    <label for="docs_sessionname">Session Name:</label>
+    <input type="text" id="docs_sessionname" name="docs_sessionname" value="{{session.docs_sessionname}}" required><br>
+    
+    <label for="docs_sessiondescription">Session Description:</label>
+    <textarea id="docs_sessiondescription" name="docs_sessiondescription" required>{{session.docs_sessiondescription}}</textarea><br>
+    
+    <label for="docs_sessiondateandtime">Session Date and Time:</label>
+    <input type="datetime-local" id="docs_sessiondateandtime" name="docs_sessiondateandtime" value="{{session.docs_sessiondateandtime | date: 'yyyy-MM-ddTHH:mm:ss'}}" required><br>
+    
+    <label for="docs_duration">Duration (minutes):</label>
+    <input type="number" id="docs_duration" name="docs_duration" value="{{session.docs_duration}}" required><br>
+    
+    <input type="submit" value="Submit">
+    </form>
+
+
+
+<script>
+
+$(document).ready(function() {
+  $('#myForm').submit(function(event) {      
+    
+    event.preventDefault(); // Prevent the default form submission
+    
+    var record = {};
+
+    record.docs_sessionname = $('#docs_sessionname').val(); // Text
+    record.docs_sessiondescription = $('#docs_sessiondescription').val(); // Multiline Text
+    record.docs_sessiondateandtime = $('#docs_sessiondateandtime').val(); // Date Time
+    record.docs_duration = parseInt($('#docs_duration').val()); // Whole Number
+
+    webapi.safeAjax({
+	    type: "PATCH",
+	    contentType: "application/json",
+	    url: "/_api/docs_sessions({{session_id}})",
+	    data: JSON.stringify(record),
+	    success: function (data, textStatus, xhr) {
+		    alert("Record updated");
+        console.log("Record updated");        
+        window.location.href = "{{session_page}}";
+	    },
+	    error: function (xhr, textStatus, errorThrown) {
+		    console.log(xhr);
+      }  
+    });
+  });
+});
+
+</script>
+
+{% manifest %} 
+    { 
+    "type": "Functional", 
+    "displayName": "Update WebAPI example", 
+    "description": "This custom form edits a record using the WebAPI, ensure id of record is passed as a parameter to this page.", 
+    "tables": ["docs_session"], 
+    "params": [ 
+        { 
+        "id": "title", 
+        "displayName": "Title", 
+        "description": "Heading for this component" 
+        }] 
+    } 
+{% endmanifest %} 

@@ -1,0 +1,54 @@
+{% fetchxml resultVariable %}
+<fetch mapping='logical' top='{{maxitems}}' returntotalrecordcount='true'>
+   <entity name='docs_session'>
+      <attribute name='docs_sessionname'></attribute>
+      <attribute name='docs_sessiondescription'></attribute>
+      <attribute name='docs_sessiondateandtime'></attribute>
+      <attribute name='docs_duration'></attribute>
+   </entity>
+</fetch>
+{% endfetchxml %}
+
+<H2>{{title}}</H2>
+
+<table class="table table-bordered">
+   <thead>
+      <tr>
+         <th>Name</th>
+         <th>Description</th>
+         <th>Date</th>
+         <th>Duration</th>
+      </tr>
+   </thead>
+   <tbody>
+      {% for entityVariable in resultVariable.results.entities %}
+      <tr>
+         <td>{{ entityVariable.docs_sessionname }}</td>
+         <td>{{ entityVariable.docs_sessiondescription }}</td>
+         <td>{{ entityVariable.docs_sessiondateandtime }}</td>
+         <td>{{ entityVariable.docs_duration }}</td>
+      </tr>
+      {% endfor %}
+   </tbody>
+</table>
+
+{% manifest %} 
+    { 
+    "type": "Functional", 
+    "displayName": "Session List - custom", 
+    "description": "This component displays data in a simple HTML table, but is fully customizable", 
+    "tables": ["docs_session"], 
+    "params": [ 
+        { 
+        "id": "title", 
+        "displayName": "Title", 
+        "description": "Heading for this component" 
+        }, 
+        { 
+        "id": "maxitems", 
+        "displayName": "Max Items", 
+        "description": "Max No. of items to be displayed" 
+        }] 
+    } 
+{% endmanifest %} 
+
